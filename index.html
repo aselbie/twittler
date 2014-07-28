@@ -14,7 +14,8 @@
 
         var showTweet = function(tweet) {
           var $tweet = $('<div></div>');
-          $tweet.text('@' + tweet.user + ': ' + tweet.message);
+          var time = new Date(tweet.created_at).toLocaleTimeString("en-us", { hour: "2-digit", minute: "2-digit" });
+          $tweet.text(time + ': @' + tweet.user + ': ' + tweet.message);
           $tweet.prependTo($body);        
         }
 
