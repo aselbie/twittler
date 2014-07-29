@@ -31,6 +31,8 @@
     </div>
 
     <br><br><br>
+    <div class="info"></div>
+
     <div class="table-responsive">
       <table class="table table-striped">
         <thead>
@@ -48,27 +50,107 @@
     <script>
 
       $(document).ready(function(){
+        var newTweetCount = 0;
+        var filter = false;
         var $tweets = $('.tweets');
 
-        var showTweet = function(tweet) {
-          var time = new Date(tweet.created_at).toLocaleTimeString("en-us", { hour: "2-digit", minute: "2-digit" });
-          var $tweet = $('<tr></tr>');
-          $tweet.append('<td>' + time + '</td>');
-          $tweet.append('<td>@' + tweet.user + '</td>');
-          $tweet.append('<td>' + tweet.message + '</td>');
-          $tweet.prependTo($tweets);        
+        var refreshInfo = function() {
+          var newInfo = '<p class="bg-primary">';
+          var $info = $('.info');
+          $info.text('');
+
+          if (filter) {
+            newInfo += 'Viewing tweets by @' + filter + '. <a href="#" class="badge view-all">View tweets by all users</a>';
+          } else {
+            newInfo += 'Viewing all tweets by all users.';
+          }
+
+          newInfo += '<br><span class="new-tweet-count"></span></p>';
+
+          $info.append(newInfo);
+          updateTweetCount();
         }
 
-        var index = streams.home.length - 1;
-        while(index >= 0){
-          showTweet(streams.home[index]);
-          index -= 1;
+        var updateTweetCount = function() {
+          var $tweetCount = $('.new-tweet-count');
+          var newCountText = '';
+
+          $tweetCount.text('');
+
+          if (newTweetCount > 0) {
+            newCountText += 'There are ' + newTweetCount + ' new tweets';
+          } else {
+            newCountText += 'There are no new tweets'
+          }
+
+          if (filter) {
+            newCountText += ' by this user.';
+          } else {
+            newCountText += '.';
+          }
+
+          if (newTweetCount > 0) {
+            newCountText += '<a href="#" class="badge new-tweets">View new tweets</a>'
+          }
+
+          $tweetCount.append(newCountText);
+
         }
+
+        var showTweet = function(tweet) {
+          if (!filter || tweet.user === filter) {
+            var time = new Date(tweet.created_at).toLocaleTimeString("en-us", { hour: "2-digit", minute: "2-digit" });
+            var $tweet = $('<tr></tr>');
+            $tweet.append('<td>' + time + '</td>');
+            $tweet.append('<td><a class="username" href="#' + tweet.user +'">@' + tweet.user + '</a></td>');
+            $tweet.append('<td>' + tweet.message + '</td>');
+            $tweet.appendTo($tweets);
+          }      
+        }
+
+        var refreshTweets = function() {
+          newTweetCount = 0;
+          $tweets.text('');
+          var index = streams.home.length - 1;
+          while(index >= 0){
+            showTweet(streams.home[index]);
+            index -= 1;
+          }
+          refreshInfo();
+        }
+
+        var filterTweets = function(handle) {
+          $notice = $('.notice');
+          filter = handle;
+          refreshTweets();
+        }
+
+        $(document).on('click', '.username', function(e){
+          e.preventDefault();
+          filterTweets($(this).attr('href').substring(1));
+        });
+
+        $(document).on('click', '.view-all', function(e){
+          e.preventDefault();
+          filter = false;
+          refreshTweets();
+        });
+
+        $(document).on('click', '.new-tweets', function(e){
+          e.preventDefault();
+          refreshTweets();
+        });
+
+        refreshTweets();
 
         // The polyfill from jdarling defers to native Object.observe if available
         // https://github.com/jdarling/Object.observe
         Object.observe(window.streams.home, function(changes){
-          showTweet(streams.home[changes[0].name])
+          var tweet = streams.home[changes[0].name];
+          if (!filter || tweet.user === filter) {
+            newTweetCount++;
+            updateTweetCount();
+          }
         });
 
       });
